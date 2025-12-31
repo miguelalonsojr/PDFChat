@@ -546,7 +546,7 @@
                     <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
                         <div :class="msg.role === 'user'
                             ? 'user-message rounded-lg px-4 py-2 max-w-xl'
-                            : 'assistant-message rounded-lg px-4 py-2 max-w-xl'">
+                            : 'assistant-message rounded-lg px-4 py-2 w-full'">
                             <div class="message-content" x-html="renderMessage(msg.content, index)"></div>
                         </div>
                     </div>
