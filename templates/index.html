@@ -762,17 +762,17 @@
                 async init() {
                     // Configure marked.js with highlight.js for syntax highlighting
                     if (typeof marked !== 'undefined') {
+                        const renderer = new marked.Renderer();
+                        const originalCodeRenderer = renderer.code.bind(renderer);
+
+                        renderer.code = function(code, language) {
+                            // Let marked generate the default code block structure
+                            const html = originalCodeRenderer(code, language);
+                            return html;
+                        };
+
                         marked.setOptions({
-                            highlight: function(code, lang) {
-                                if (lang && hljs.getLanguage(lang)) {
-                                    try {
-                                        return hljs.highlight(code, { language: lang }).value;
-                                    } catch (err) {
-                                        console.error('Highlight error:', err);
-                                    }
-                                }
-                                return hljs.highlightAuto(code).value;
-                            },
+                            renderer: renderer,
                             breaks: true,
                             gfm: true,
                             pedantic: false
@@ -1130,6 +1130,13 @@
                     this.$nextTick(() => {
                         const container = this.$refs.chatContainer;
                         container.scrollTop = container.scrollHeight;
+
+                        // Highlight code blocks after rendering
+                        if (typeof hljs !== 'undefined') {
+                            container.querySelectorAll('pre code').forEach((block) => {
+                                hljs.highlightElement(block);
+                            });
+                        }
                     });
                 },
 
