@@ -1,0 +1,42 @@
+[project]
+name = "pdfchat"
+version = "0.1.0"
+description = "Local PDF Q&A chatbot with Flask, LlamaIndex, and Ollama"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.0",
+    "flask-cors>=4.0",
+    "llama-index>=0.10.0",
+    "llama-index-embeddings-huggingface>=0.2.0",
+    "llama-index-vector-stores-chroma>=0.1.0",
+    "llama-index-llms-ollama>=0.1.0",
+    "llama-index-readers-file>=0.1.0",
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+    "pymupdf>=1.23.0",
+    "ollama>=0.1.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
