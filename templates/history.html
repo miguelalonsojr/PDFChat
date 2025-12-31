@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }} - History</title>
+    <script src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Solarized Dark Color Palette */
+        :root {
+            --base03: #002b36;
+            --base02: #073642;
+            --base01: #586e75;
+            --base00: #657b83;
+            --base0: #839496;
+            --base1: #93a1a1;
+            --base2: #eee8d5;
+            --base3: #fdf6e3;
+            --yellow: #b58900;
+            --orange: #cb4b16;
+            --red: #dc322f;
+            --magenta: #d33682;
+            --violet: #6c71c4;
+            --blue: #268bd2;
+            --cyan: #2aa198;
+            --green: #859900;
+        }
+
+        [x-cloak] { display: none !important; }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body {
+            background-color: var(--base03);
+            color: var(--base0);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .header-section {
+            flex-shrink: 0;
+            padding: 1rem;
+        }
+
+        .content-section {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+        }
+
+        .card {
+            background-color: var(--base02);
+            border: 1px solid var(--base01);
+        }
+
+        .header-title {
+            color: var(--base1);
+        }
+
+        .conversation-item {
+            background-color: var(--base02);
+            border: 1px solid var(--base01);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .conversation-item:hover {
+            background-color: var(--base01);
+            border-color: var(--cyan);
+        }
+
+        .conversation-title {
+            color: var(--base1);
+            font-weight: 500;
+        }
+
+        .conversation-meta {
+            color: var(--base00);
+            font-size: 0.875rem;
+        }
+
+        .search-input {
+            background-color: var(--base02);
+            border: 1px solid var(--base01);
+            color: var(--base1);
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--cyan);
+            box-shadow: 0 0 0 2px rgba(42, 161, 152, 0.2);
+        }
+
+        .btn-primary {
+            background-color: var(--cyan);
+            color: var(--base03);
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--green);
+        }
+
+        .btn-danger {
+            color: var(--red);
+        }
+
+        .btn-danger:hover {
+            color: var(--orange);
+        }
+
+        .empty-state-icon {
+            color: var(--base01);
+        }
+
+        .empty-state-text {
+            color: var(--base0);
+        }
+
+        .content-section::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .content-section::-webkit-scrollbar-track {
+            background: var(--base03);
+        }
+
+        .content-section::-webkit-scrollbar-thumb {
+            background: var(--base01);
+            border-radius: 4px;
+        }
+
+        .content-section::-webkit-scrollbar-thumb:hover {
+            background: var(--base00);
+        }
+    </style>
+</head>
+<body>
+    <div x-data="historyApp()" x-cloak class="app-container">
+        <!-- Header Section -->
+        <div class="header-section">
+            <div class="card rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h1 class="text-3xl font-bold header-title">Conversation History</h1>
+                    <a href="/" class="btn-primary px-4 py-2 rounded-lg transition-colors">
+                        Back to Chat
+                    </a>
+                </div>
+
+                <!-- Search Bar -->
+                <div class="mt-4">
+                    <input
+                        type="text"
+                        x-model="searchQuery"
+                        @input="searchConversations()"
+                        placeholder="Search conversations..."
+                        class="w-full search-input rounded-lg px-4 py-2"
+                    >
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Section -->
+        <div class="content-section">
+            <!-- Loading State -->
+            <template x-if="isLoading">
+                <div class="text-center py-12">
+                    <p class="text-lg" style="color: var(--cyan)">Loading conversations...</p>
+                </div>
+            </template>
+
+            <!-- Empty State -->
+            <template x-if="!isLoading && conversations.length === 0">
+                <div class="text-center py-12">
+                    <svg class="mx-auto h-12 w-12 empty-state-icon mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                    </svg>
+                    <p class="text-lg empty-state-text">No conversations found</p>
+                </div>
+            </template>
+
+            <!-- Conversation List -->
+            <div class="space-y-3">
+                <template x-for="conv in conversations" :key="conv.id">
+                    <div class="conversation-item rounded-lg p-4 flex justify-between items-start"
+                         @click="loadConversation(conv.id)">
+                        <div class="flex-1">
+                            <h3 class="conversation-title text-lg mb-1" x-text="conv.title"></h3>
+                            <p class="conversation-meta">
+                                <span x-text="formatDate(conv.updated_at)"></span>
+                                <span class="mx-2">•</span>
+                                <span x-text="conv.message_count + ' messages'"></span>
+                            </p>
+                        </div>
+                        <button
+                            @click.stop="deleteConversation(conv.id)"
+                            class="btn-danger px-3 py-1 text-sm rounded transition-colors"
+                        >
+                            Delete
+                        </button>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function historyApp() {
+            return {
+                conversations: [],
+                searchQuery: '',
+                isLoading: true,
+                searchTimeout: null,
+
+                async init() {
+                    await this.loadConversations();
+                },
+
+                async loadConversations() {
+                    this.isLoading = true;
+                    try {
+                        const response = await fetch('/api/conversations');
+                        if (response.ok) {
+                            this.conversations = await response.json();
+                        }
+                    } catch (err) {
+                        console.error('Error loading conversations:', err);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async searchConversations() {
+                    // Debounce search
+                    clearTimeout(this.searchTimeout);
+                    this.searchTimeout = setTimeout(async () => {
+                        if (!this.searchQuery.trim()) {
+                            await this.loadConversations();
+                            return;
+                        }
+
+                        this.isLoading = true;
+                        try {
+                            const response = await fetch(`/api/conversations/search?q=${encodeURIComponent(this.searchQuery)}`);
+                            if (response.ok) {
+                                this.conversations = await response.json();
+                            }
+                        } catch (err) {
+                            console.error('Error searching conversations:', err);
+                        } finally {
+                            this.isLoading = false;
+                        }
+                    }, 300);
+                },
+
+                loadConversation(conversationId) {
+                    // Navigate to main page with conversation ID
+                    window.location.href = `/?conversation=${conversationId}`;
+                },
+
+                async deleteConversation(conversationId) {
+                    if (!confirm('Are you sure you want to delete this conversation?')) {
+                        return;
+                    }
+
+                    try {
+                        const response = await fetch(`/api/conversations/${conversationId}`, {
+                            method: 'DELETE'
+                        });
+
+                        if (response.ok) {
+                            // Remove from list
+                            this.conversations = this.conversations.filter(c => c.id !== conversationId);
+                        }
+                    } catch (err) {
+                        console.error('Error deleting conversation:', err);
+                    }
+                },
+
+                formatDate(dateString) {
+                    const date = new Date(dateString);
+                    const now = new Date();
+                    const diffMs = now - date;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    const diffHours = Math.floor(diffMs / 3600000);
+                    const diffDays = Math.floor(diffMs / 86400000);
+
+                    if (diffMins < 1) return 'Just now';
+                    if (diffMins < 60) return `${diffMins} min ago`;
+                    if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+                    if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+
+                    return date.toLocaleDateString();
+                }
+            }
+        }
+    </script>
+</body>
+</html>
