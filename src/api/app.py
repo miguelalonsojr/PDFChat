@@ -1,5 +1,5 @@
 """Flask application factory and routes."""
-from flask import Flask, request, jsonify, Response, stream_with_context
+from flask import Flask, request, jsonify, Response, stream_with_context, render_template
 from flask_cors import CORS
 import sys
 from pathlib import Path
@@ -8,12 +8,23 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.agents import get_agent
-from src.config import FLASK_HOST, FLASK_PORT, FLASK_DEBUG, PROJECT_ROOT
+from src.config import (
+    FLASK_HOST,
+    FLASK_PORT,
+    FLASK_DEBUG,
+    PROJECT_ROOT,
+    APP_TITLE,
+    APP_SUBTITLE,
+)
 
 
 def create_app():
     """Create and configure the Flask application."""
-    app = Flask(__name__, static_folder=str(PROJECT_ROOT / "static"))
+    app = Flask(
+        __name__,
+        static_folder=str(PROJECT_ROOT / "static"),
+        template_folder=str(PROJECT_ROOT / "templates"),
+    )
     CORS(app)
 
     # Initialize agent on first request
@@ -31,7 +42,7 @@ def create_app():
     @app.route("/")
     def index():
         """Serve the main page."""
-        return app.send_static_file("index.html")
+        return render_template("index.html", app_title=APP_TITLE, app_subtitle=APP_SUBTITLE)
 
     @app.route("/api/health", methods=["GET"])
     def health():

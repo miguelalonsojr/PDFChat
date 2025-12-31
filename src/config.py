@@ -36,3 +36,7 @@ FLASK_DEBUG = os.getenv("FLASK_DEBUG", "True").lower() == "true"
 
 # ChromaDB collection name
 CHROMA_COLLECTION_NAME = "pdf_documents"
+
+# UI settings
+APP_TITLE = os.getenv("APP_TITLE", "PDFChat")
+APP_SUBTITLE = os.getenv("APP_SUBTITLE", "Ask questions about your PDF documents")

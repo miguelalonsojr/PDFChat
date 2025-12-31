@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ app_title }}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/alpinejs@3.13.3/dist/cdn.min.js" defer></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Solarized Dark Color Palette */
+        :root {
+            --base03: #002b36;
+            --base02: #073642;
+            --base01: #586e75;
+            --base00: #657b83;
+            --base0: #839496;
+            --base1: #93a1a1;
+            --base2: #eee8d5;
+            --base3: #fdf6e3;
+            --yellow: #b58900;
+            --orange: #cb4b16;
+            --red: #dc322f;
+            --magenta: #d33682;
+            --violet: #6c71c4;
+            --blue: #268bd2;
+            --cyan: #2aa198;
+            --green: #859900;
+        }
+
+        [x-cloak] { display: none !important; }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        body {
+            background-color: var(--base03);
+            color: var(--base0);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .header-section {
+            flex-shrink: 0;
+            padding: 1rem;
+        }
+
+        .chat-section {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            padding-bottom: 2rem;
+            background-color: var(--base02);
+        }
+
+        .input-section {
+            flex-shrink: 0;
+            padding: 1rem;
+            background-color: var(--base02);
+            border-top: 1px solid var(--base01);
+        }
+
+        .message-content {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .chat-section::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .chat-section::-webkit-scrollbar-track {
+            background: var(--base03);
+        }
+
+        .chat-section::-webkit-scrollbar-thumb {
+            background: var(--base01);
+            border-radius: 4px;
+        }
+
+        .chat-section::-webkit-scrollbar-thumb:hover {
+            background: var(--base00);
+        }
+
+        .card {
+            background-color: var(--base02);
+            border: 1px solid var(--base01);
+        }
+
+        .header-title {
+            color: var(--base1);
+        }
+
+        .header-subtitle {
+            color: var(--base0);
+        }
+
+        .user-message {
+            background-color: var(--blue);
+            color: var(--base03);
+        }
+
+        .assistant-message {
+            background-color: var(--base02);
+            color: var(--base1);
+            border: 1px solid var(--base01);
+        }
+
+        .loading-bubble {
+            background-color: var(--base01);
+        }
+
+        .loading-dot {
+            background-color: var(--cyan);
+        }
+
+        .input-field {
+            background-color: var(--base02);
+            border: 1px solid var(--base01);
+            color: var(--base1);
+        }
+
+        .input-field:focus {
+            outline: none;
+            border-color: var(--cyan);
+            box-shadow: 0 0 0 2px rgba(42, 161, 152, 0.2);
+        }
+
+        .input-field:disabled {
+            background-color: var(--base03);
+            color: var(--base00);
+        }
+
+        .input-field::placeholder {
+            color: var(--base00);
+        }
+
+        .btn-primary {
+            background-color: var(--cyan);
+            color: var(--base03);
+            font-weight: 500;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background-color: var(--green);
+        }
+
+        .btn-primary:disabled {
+            background-color: var(--base01);
+            color: var(--base00);
+            cursor: not-allowed;
+        }
+
+        .btn-reset {
+            color: var(--base0);
+        }
+
+        .btn-reset:hover:not(:disabled) {
+            color: var(--cyan);
+        }
+
+        .btn-reset:disabled {
+            color: var(--base01);
+        }
+
+        .error-message {
+            background-color: var(--base02);
+            border: 1px solid var(--red);
+            color: var(--red);
+        }
+
+        .empty-state-icon {
+            color: var(--base01);
+        }
+
+        .empty-state-text {
+            color: var(--base0);
+        }
+
+        .divider {
+            border-color: var(--base01);
+        }
+
+        .thinking-box {
+            background-color: var(--base03);
+            border: 1px solid var(--base01);
+            border-left: 3px solid var(--violet);
+            margin: 0.5rem 0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .thinking-header {
+            padding: 0.5rem 0.75rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            user-select: none;
+            color: var(--violet);
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+
+        .thinking-header:hover {
+            background-color: var(--base02);
+        }
+
+        .thinking-chevron {
+            transition: transform 0.2s;
+            width: 1rem;
+            height: 1rem;
+        }
+
+        .thinking-chevron.expanded {
+            transform: rotate(90deg);
+        }
+
+        .thinking-content {
+            padding: 0.75rem;
+            color: var(--base0);
+            font-size: 0.875rem;
+            font-style: italic;
+            border-top: 1px solid var(--base01);
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+        }
+
+        .settings-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--base0);
+            font-size: 0.875rem;
+        }
+
+        .toggle-checkbox {
+            appearance: none;
+            width: 2.5rem;
+            height: 1.25rem;
+            background-color: var(--base01);
+            border-radius: 9999px;
+            position: relative;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        .toggle-checkbox:checked {
+            background-color: var(--cyan);
+        }
+
+        .toggle-checkbox::before {
+            content: '';
+            position: absolute;
+            width: 1rem;
+            height: 1rem;
+            background-color: var(--base2);
+            border-radius: 50%;
+            top: 0.125rem;
+            left: 0.125rem;
+            transition: transform 0.2s;
+        }
+
+        .toggle-checkbox:checked::before {
+            transform: translateX(1.25rem);
+        }
+    </style>
+</head>
+<body>
+    <div x-data="chatApp()" x-cloak class="app-container">
+        <!-- Header Section (Sticky Top) -->
+        <div class="header-section">
+            <div class="card rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h1 class="text-3xl font-bold header-title mb-2">{{ app_title }}</h1>
+                        <p class="header-subtitle">{{ app_subtitle }}</p>
+                    </div>
+                    <div class="settings-toggle">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <span>Show thinking</span>
+                            <input
+                                type="checkbox"
+                                x-model="showThinking"
+                                class="toggle-checkbox"
+                            >
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Section (Scrollable Middle) -->
+        <div class="chat-section space-y-4" x-ref="chatContainer">
+                <template x-if="messages.length === 0">
+                    <div class="text-center py-12">
+                        <svg class="mx-auto h-12 w-12 empty-state-icon mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/>
+                        </svg>
+                        <p class="text-lg empty-state-text">Start a conversation about your documents</p>
+                    </div>
+                </template>
+
+                <template x-for="(msg, index) in messages" :key="index">
+                    <div :class="msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'">
+                        <div :class="msg.role === 'user'
+                            ? 'user-message rounded-lg px-4 py-2 max-w-xl'
+                            : 'assistant-message rounded-lg px-4 py-2 max-w-xl'">
+                            <div class="message-content" x-html="renderMessage(msg.content, index)"></div>
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Loading indicator -->
+                <template x-if="isLoading">
+                    <div class="flex justify-start">
+                        <div class="loading-bubble rounded-lg px-4 py-2">
+                            <div class="flex space-x-2">
+                                <div class="w-2 h-2 loading-dot rounded-full animate-bounce"></div>
+                                <div class="w-2 h-2 loading-dot rounded-full animate-bounce" style="animation-delay: 0.1s"></div>
+                                <div class="w-2 h-2 loading-dot rounded-full animate-bounce" style="animation-delay: 0.2s"></div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+        </div>
+
+        <!-- Input Section (Sticky Bottom) -->
+        <div class="input-section">
+            <form @submit.prevent="sendMessage()" class="flex space-x-2">
+                <input
+                    type="text"
+                    x-model="currentMessage"
+                    :disabled="isLoading"
+                    placeholder="Ask a question about your PDFs..."
+                    class="flex-1 input-field rounded-lg px-4 py-2"
+                >
+                <button
+                    type="submit"
+                    :disabled="isLoading || !currentMessage.trim()"
+                    class="btn-primary px-6 py-2 rounded-lg transition-colors"
+                >
+                    Send
+                </button>
+            </form>
+
+            <!-- Reset button and error messages -->
+            <div class="mt-2 flex justify-between items-center">
+                <div x-show="error" class="error-message px-4 py-2 rounded-lg flex-1 mr-2">
+                    <p x-text="error" class="text-sm"></p>
+                </div>
+                <button
+                    @click="resetChat()"
+                    :disabled="isLoading"
+                    class="text-sm btn-reset whitespace-nowrap"
+                >
+                    Reset conversation
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function chatApp() {
+            return {
+                messages: [],
+                currentMessage: '',
+                isLoading: false,
+                error: '',
+                showThinking: false,
+                thinkingExpanded: {},
+
+                async sendMessage() {
+                    if (!this.currentMessage.trim() || this.isLoading) return;
+
+                    const userMessage = this.currentMessage.trim();
+                    this.currentMessage = '';
+                    this.error = '';
+
+                    // Add user message
+                    this.messages.push({
+                        role: 'user',
+                        content: userMessage
+                    });
+
+                    this.scrollToBottom();
+                    this.isLoading = true;
+
+                    try {
+                        // Call streaming API
+                        const response = await fetch('/api/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({ message: userMessage })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+
+                        // Read streaming response
+                        const reader = response.body.getReader();
+                        const decoder = new TextDecoder();
+
+                        // Add assistant message placeholder
+                        this.messages.push({
+                            role: 'assistant',
+                            content: '',
+                            rawContent: ''
+                        });
+
+                        const assistantMessageIndex = this.messages.length - 1;
+                        let buffer = '';
+                        let insideThinkTag = false;
+                        let thinkingBuffer = '';
+                        let finalContent = '';
+                        let thinkingPlaceholderId = 0;
+                        const placeholderMap = new Map(); // Maps placeholder ID to thinking content
+
+                        const funnyThinkingMessages = [
+                            '🤔 Consulting the ancient PDFs...',
+                            '🧠 Activating neural pathways...',
+                            '📚 Flipping through digital pages...',
+                            '🔍 Searching for wisdom in the bytes...',
+                            '💭 Pondering the great questions...',
+                            '🎯 Aiming for accuracy...',
+                            '⚡ Charging up the knowledge banks...',
+                            '🌟 Channeling document energy...',
+                            '🎨 Painting a picture with words...',
+                            '🚀 Launching brain rockets...',
+                            '🔮 Divining answers from the void...',
+                            '🧙 Casting knowledge spells...',
+                            '🎪 Juggling information...',
+                            '🌊 Swimming through data streams...',
+                            '🎭 Rehearsing the perfect response...'
+                        ];
+
+                        while (true) {
+                            const { done, value } = await reader.read();
+                            if (done) break;
+
+                            const chunk = decoder.decode(value);
+                            buffer += chunk;
+
+                            // Process buffer for <think> tags
+                            while (true) {
+                                if (!insideThinkTag) {
+                                    const thinkStart = buffer.indexOf('<think>');
+                                    if (thinkStart === -1) {
+                                        // No think tag, add rest of buffer to content and clear buffer
+                                        finalContent += buffer;
+                                        buffer = '';
+                                        break;
+                                    } else {
+                                        // Found think tag start
+                                        finalContent += buffer.substring(0, thinkStart);
+                                        insideThinkTag = true;
+                                        thinkingBuffer = '';
+                                        buffer = buffer.substring(thinkStart + 7); // Remove '<think>' from buffer
+
+                                        // Add funny placeholder as a temporary tag
+                                        const funnyMessage = funnyThinkingMessages[Math.floor(Math.random() * funnyThinkingMessages.length)];
+                                        const placeholderId = `THINKID${thinkingPlaceholderId}`;
+                                        thinkingPlaceholderId++;
+
+                                        placeholderMap.set(placeholderId, { funny: funnyMessage, content: null });
+                                        finalContent += `<thinking-temp id="${placeholderId}">${funnyMessage}</thinking-temp>`;
+                                    }
+                                } else {
+                                    const thinkEnd = buffer.indexOf('</think>');
+                                    if (thinkEnd === -1) {
+                                        // No end tag yet, buffer the thinking content
+                                        thinkingBuffer += buffer;
+                                        buffer = '';
+                                        break;
+                                    } else {
+                                        // Found end tag
+                                        thinkingBuffer += buffer.substring(0, thinkEnd);
+                                        insideThinkTag = false;
+                                        buffer = buffer.substring(thinkEnd + 8); // Remove '</think>' from buffer
+
+                                        // Find the placeholder and replace it with the thinking block
+                                        const placeholderId = `THINKID${thinkingPlaceholderId - 1}`;
+                                        const thinkBlock = `<think>${thinkingBuffer}</think>`;
+
+                                        // Replace the temporary thinking tag with the actual thinking block
+                                        const tempTagRegex = new RegExp(`<thinking-temp id="${placeholderId}">.*?</thinking-temp>`, 's');
+                                        finalContent = finalContent.replace(tempTagRegex, thinkBlock);
+
+                                        thinkingBuffer = '';
+                                        // Continue processing in case there are more tags
+                                    }
+                                }
+                            }
+
+                            // Update message content
+                            this.messages[assistantMessageIndex].content = finalContent;
+                            this.scrollToBottom();
+                        }
+
+                    } catch (err) {
+                        this.error = `Error: ${err.message}. Make sure the server is running and the index is built.`;
+                        console.error('Error:', err);
+                    } finally {
+                        this.isLoading = false;
+                    }
+                },
+
+                async resetChat() {
+                    if (!confirm('Are you sure you want to reset the conversation?')) return;
+
+                    try {
+                        const response = await fetch('/api/reset', {
+                            method: 'POST'
+                        });
+
+                        if (response.ok) {
+                            this.messages = [];
+                            this.error = '';
+                        }
+                    } catch (err) {
+                        this.error = `Error resetting chat: ${err.message}`;
+                    }
+                },
+
+                scrollToBottom() {
+                    this.$nextTick(() => {
+                        const container = this.$refs.chatContainer;
+                        container.scrollTop = container.scrollHeight;
+                    });
+                },
+
+                escapeHtml(text) {
+                    const div = document.createElement('div');
+                    div.textContent = text;
+                    return div.innerHTML;
+                },
+
+                renderMessage(content, messageIndex) {
+                    if (!content) return '';
+
+                    let processedContent = content;
+                    let html = '';
+                    let lastIndex = 0;
+
+                    // Combined regex to match both <thinking-temp> and <think> tags
+                    const combinedRegex = /(<thinking-temp[^>]*>[\s\S]*?<\/thinking-temp>)|(<think>[\s\S]*?<\/think>)/g;
+                    let match;
+                    let thinkingIndex = 0;
+
+                    while ((match = combinedRegex.exec(processedContent)) !== null) {
+                        // Add text before the thinking block
+                        if (match.index > lastIndex) {
+                            const textBefore = processedContent.substring(lastIndex, match.index);
+                            html += this.escapeHtml(textBefore);
+                        }
+
+                        if (match[1]) {
+                            // This is a <thinking-temp> tag (still thinking)
+                            // ALWAYS show the funny message, regardless of toggle state
+                            const tempContent = match[1].match(/<thinking-temp[^>]*>([\s\S]*?)<\/thinking-temp>/);
+                            if (tempContent) {
+                                const funnyMessage = tempContent[1];
+                                html += `<span style="color: var(--violet); font-style: italic;">${this.escapeHtml(funnyMessage)}</span>`;
+                            }
+                        } else if (match[2]) {
+                            // This is a <think> tag (thinking complete)
+                            // Only show if toggle is ON
+                            if (this.showThinking) {
+                                const thinkContent = match[2].match(/<think>([\s\S]*?)<\/think>/);
+                                if (thinkContent) {
+                                    const thinkingContent = thinkContent[1];
+                                    const thinkingId = `think-${messageIndex}-${thinkingIndex}`;
+                                    const isExpanded = this.thinkingExpanded[thinkingId] || false;
+                                    const escapedThinking = this.escapeHtml(thinkingContent);
+
+                                    html += `
+                                        <div class="thinking-box">
+                                            <div class="thinking-header" data-thinking-id="${thinkingId}">
+                                                <svg class="thinking-chevron ${isExpanded ? 'expanded' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                                </svg>
+                                                <span>Thinking trace</span>
+                                            </div>
+                                            <div class="thinking-content" style="display: ${isExpanded ? 'block' : 'none'}" id="${thinkingId}">${escapedThinking}</div>
+                                        </div>
+                                    `;
+
+                                    thinkingIndex++;
+                                }
+                            }
+                            // If toggle is OFF, the <think> block is simply not rendered (skipped)
+                        }
+
+                        lastIndex = match.index + match[0].length;
+                    }
+
+                    // Add remaining text after last thinking block
+                    if (lastIndex < processedContent.length) {
+                        const remainingText = processedContent.substring(lastIndex);
+                        html += this.escapeHtml(remainingText);
+                    }
+
+                    return html || this.escapeHtml(processedContent);
+                },
+
+                toggleThinking(thinkingId) {
+                    this.thinkingExpanded[thinkingId] = !this.thinkingExpanded[thinkingId];
+
+                    // Update DOM
+                    const contentEl = document.getElementById(thinkingId);
+                    const chevronEl = contentEl?.previousElementSibling?.querySelector('.thinking-chevron');
+
+                    if (contentEl) {
+                        contentEl.style.display = this.thinkingExpanded[thinkingId] ? 'block' : 'none';
+                    }
+
+                    if (chevronEl) {
+                        if (this.thinkingExpanded[thinkingId]) {
+                            chevronEl.classList.add('expanded');
+                        } else {
+                            chevronEl.classList.remove('expanded');
+                        }
+                    }
+                }
+            }
+        }
+
+        // Setup click handlers for thinking boxes
+        document.addEventListener('click', (e) => {
+            const header = e.target.closest('.thinking-header');
+            if (header && header.dataset.thinkingId) {
+                const thinkingId = header.dataset.thinkingId;
+                const appContainer = document.querySelector('[x-data="chatApp()"]');
+
+                // Try to get Alpine instance and call toggleThinking
+                if (appContainer && typeof Alpine !== 'undefined') {
+                    const app = Alpine.$data(appContainer);
+                    if (app && typeof app.toggleThinking === 'function') {
+                        app.toggleThinking(thinkingId);
+                    }
+                } else {
+                    // Fallback: manually toggle without Alpine state tracking
+                    const contentEl = document.getElementById(thinkingId);
+                    const chevronEl = header.querySelector('.thinking-chevron');
+
+                    if (contentEl) {
+                        const isCurrentlyHidden = contentEl.style.display === 'none' || contentEl.style.display === '';
+                        contentEl.style.display = isCurrentlyHidden ? 'block' : 'none';
+
+                        if (chevronEl) {
+                            if (isCurrentlyHidden) {
+                                chevronEl.classList.add('expanded');
+                            } else {
+                                chevronEl.classList.remove('expanded');
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    </script>
+</body>
+</html>

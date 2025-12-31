@@ -139,8 +139,9 @@ PDFChat/
 │   │   └── qa_agent.py    # Q&A agent with LlamaIndex
 │   └── api/
 │       └── app.py         # Flask application
-├── static/
-│   └── index.html         # Web interface
+├── templates/
+│   └── index.html         # Web interface template
+├── static/                # Static assets
 ├── pyproject.toml         # UV project configuration
 └── README.md
 ```
@@ -154,6 +155,7 @@ Edit `src/config.py` to customize:
 - **Chunk Size**: Adjust `CHUNK_SIZE` and `CHUNK_OVERLAP` for different chunking strategies
 - **Top-K Results**: Modify `SIMILARITY_TOP_K` to retrieve more/fewer context chunks
 - **Server Settings**: Update `FLASK_HOST` and `FLASK_PORT`
+- **UI Customization**: Change `APP_TITLE` and `APP_SUBTITLE` to personalize the interface
 
 ### Environment Variables
 
@@ -163,6 +165,8 @@ You can also use environment variables:
 export OLLAMA_MODEL="llama3"
 export EMBEDDING_MODEL="all-MiniLM-L6-v2"
 export FLASK_PORT="8000"
+export APP_TITLE="My Document Chat"
+export APP_SUBTITLE="Chat with your company documents"
 ```
 
 ## API Endpoints
