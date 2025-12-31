@@ -102,7 +102,12 @@ class ConversationDB:
 
             # Get conversation
             cursor.execute(
-                "SELECT * FROM conversations WHERE id = ?",
+                """
+                SELECT id, title,
+                       datetime(created_at) || 'Z' as created_at,
+                       datetime(updated_at) || 'Z' as updated_at
+                FROM conversations WHERE id = ?
+                """,
                 (conversation_id,)
             )
             conv_row = cursor.fetchone()
@@ -112,7 +117,11 @@ class ConversationDB:
 
             # Get messages
             cursor.execute(
-                "SELECT role, content, created_at FROM messages WHERE conversation_id = ? ORDER BY id ASC",
+                """
+                SELECT role, content,
+                       datetime(created_at) || 'Z' as created_at
+                FROM messages WHERE conversation_id = ? ORDER BY id ASC
+                """,
                 (conversation_id,)
             )
             messages = [dict(row) for row in cursor.fetchall()]
@@ -133,7 +142,9 @@ class ConversationDB:
 
             cursor.execute(
                 """
-                SELECT c.id, c.title, c.created_at, c.updated_at,
+                SELECT c.id, c.title,
+                       datetime(c.created_at) || 'Z' as created_at,
+                       datetime(c.updated_at) || 'Z' as updated_at,
                        (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id) as message_count
                 FROM conversations c
                 ORDER BY c.updated_at DESC
@@ -154,7 +165,9 @@ class ConversationDB:
 
             cursor.execute(
                 """
-                SELECT DISTINCT c.id, c.title, c.created_at, c.updated_at,
+                SELECT DISTINCT c.id, c.title,
+                       datetime(c.created_at) || 'Z' as created_at,
+                       datetime(c.updated_at) || 'Z' as updated_at,
                        (SELECT COUNT(*) FROM messages WHERE conversation_id = c.id) as message_count
                 FROM conversations c
                 LEFT JOIN messages m ON c.id = m.conversation_id
