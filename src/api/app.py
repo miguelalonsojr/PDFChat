@@ -2,6 +2,7 @@
 from flask import Flask, request, jsonify, Response, stream_with_context, render_template, send_from_directory
 from flask_cors import CORS
 import sys
+import json
 from pathlib import Path
 
 # Add project root to path
@@ -110,15 +111,20 @@ def create_app():
             """Stream the response."""
             try:
                 response = agent_instance.chat(message)
+
+                # Stream the response first, collect full response text
+                full_response = ""
                 for token in response.response_gen:
+                    full_response += token
                     yield token
 
-                # After streaming completes, append source information
-                if hasattr(response, 'source_nodes') and response.source_nodes:
-                    sources = []
-                    seen_sources = set()
+                # After streaming completes, build source mapping and append sources
+                source_map = {}
+                sources_list = []
+                seen_sources = set()
 
-                    for node in response.source_nodes:
+                if hasattr(response, 'source_nodes') and response.source_nodes:
+                    for idx, node in enumerate(response.source_nodes, 1):
                         # Extract file name and page number from metadata
                         file_name = node.metadata.get('file_name', 'Unknown')
                         page_label = node.metadata.get('page_label', '')
@@ -128,32 +134,39 @@ def create_app():
                         source_id = f"{file_name}_{page_label}"
                         if source_id not in seen_sources:
                             seen_sources.add(source_id)
+                            citation_num = len(sources_list) + 1
 
-                            # Format source entry with link
+                            # Get PDF URL
+                            pdf_url = ""
                             if file_path:
-                                # Get relative path from DATA_DIR
                                 try:
                                     rel_path = Path(file_path).relative_to(DATA_DIR)
-                                    # Use as_posix() to ensure forward slashes for URLs
                                     pdf_url = f"/static/pdfs/{rel_path.as_posix()}"
                                 except ValueError:
-                                    # If file is not in DATA_DIR, just use filename
                                     pdf_url = f"/static/pdfs/{file_name}"
 
-                                if page_label:
-                                    sources.append(f"[{file_name} (Page {page_label})]({pdf_url})")
-                                else:
-                                    sources.append(f"[{file_name}]({pdf_url})")
-                            else:
-                                if page_label:
-                                    sources.append(f"{file_name} (Page {page_label})")
-                                else:
-                                    sources.append(file_name)
+                            # Store mapping for citations
+                            source_map[str(citation_num)] = {
+                                'url': pdf_url,
+                                'name': file_name,
+                                'page': page_label
+                            }
 
-                    if sources:
-                        yield "\n\n---\n\n**Sources:**\n\n"
-                        for i, source in enumerate(sources, 1):
-                            yield f"{i}. {source}\n"
+                            # Format source entry for sources list
+                            if page_label:
+                                sources_list.append(f"[{file_name} (Page {page_label})]({pdf_url})")
+                            else:
+                                sources_list.append(f"[{file_name}]({pdf_url})")
+
+                # Send source mapping after response
+                if source_map:
+                    yield f"<sources>{json.dumps(source_map)}</sources>"
+
+                # Append source list
+                if sources_list:
+                    yield "\n\n---\n\n**Sources:**\n\n"
+                    for i, source in enumerate(sources_list, 1):
+                        yield f"{i}. {source}\n"
             except Exception as e:
                 yield f"\n\nError: {str(e)}"
 

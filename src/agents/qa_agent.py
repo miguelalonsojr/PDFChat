@@ -70,10 +70,18 @@ class QAAgent:
 
     def _create_chat_engine(self):
         """Create a chat engine for conversational interactions."""
+        system_prompt = (
+            "You are a helpful AI assistant that answers questions based on provided documents. "
+            "When you reference information from the documents, cite your sources using numbered markers like [1], [2], etc. "
+            "Use the citation number that corresponds to the source document you're referencing. "
+            "Place citations immediately after the relevant statement or claim."
+        )
+
         return self.index.as_chat_engine(
             similarity_top_k=SIMILARITY_TOP_K,
             streaming=True,
             chat_mode="condense_plus_context",
+            system_prompt=system_prompt,
         )
 
     def query(self, question: str) -> str:

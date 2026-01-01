@@ -551,6 +551,21 @@
             color: var(--base1);
             font-style: italic;
         }
+
+        .assistant-message sup {
+            line-height: 0;
+        }
+
+        .assistant-message sup a {
+            color: var(--cyan);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .assistant-message sup a:hover {
+            color: var(--green);
+            text-decoration: underline;
+        }
     </style>
 </head>
 <body x-data="chatApp()" x-cloak>
@@ -1018,13 +1033,16 @@
                         this.messages.push({
                             role: 'assistant',
                             content: '',
-                            rawContent: ''
+                            rawContent: '',
+                            sourceMap: {}
                         });
 
                         const assistantMessageIndex = this.messages.length - 1;
                         let buffer = '';
                         let insideThinkTag = false;
+                        let insideSourcesTag = false;
                         let thinkingBuffer = '';
+                        let sourcesBuffer = '';
                         let finalContent = '';
                         let thinkingPlaceholderId = 0;
                         const placeholderMap = new Map(); // Maps placeholder ID to thinking content
@@ -1054,12 +1072,23 @@
                             const chunk = decoder.decode(value);
                             buffer += chunk;
 
-                            // Process buffer for <think> tags
+                            // Process buffer for <sources> and <think> tags
                             while (true) {
-                                if (!insideThinkTag) {
+                                if (!insideSourcesTag && !insideThinkTag) {
+                                    // Check for sources tag first
+                                    const sourcesStart = buffer.indexOf('<sources>');
+                                    if (sourcesStart !== -1) {
+                                        finalContent += buffer.substring(0, sourcesStart);
+                                        insideSourcesTag = true;
+                                        sourcesBuffer = '';
+                                        buffer = buffer.substring(sourcesStart + 9); // Remove '<sources>' from buffer
+                                        continue;
+                                    }
+
+                                    // Check for think tag
                                     const thinkStart = buffer.indexOf('<think>');
                                     if (thinkStart === -1) {
-                                        // No think tag, add rest of buffer to content and clear buffer
+                                        // No special tags, add rest of buffer to content and clear buffer
                                         finalContent += buffer;
                                         buffer = '';
                                         break;
@@ -1078,7 +1107,33 @@
                                         placeholderMap.set(placeholderId, { funny: funnyMessage, content: null });
                                         finalContent += `<thinking-temp id="${placeholderId}">${funnyMessage}</thinking-temp>`;
                                     }
-                                } else {
+                                } else if (insideSourcesTag) {
+                                    const sourcesEnd = buffer.indexOf('</sources>');
+                                    if (sourcesEnd === -1) {
+                                        // No end tag yet, buffer the sources content
+                                        sourcesBuffer += buffer;
+                                        buffer = '';
+                                        break;
+                                    } else {
+                                        // Found end tag
+                                        sourcesBuffer += buffer.substring(0, sourcesEnd);
+                                        insideSourcesTag = false;
+                                        buffer = buffer.substring(sourcesEnd + 10); // Remove '</sources>' from buffer
+
+                                        // Parse source mapping
+                                        try {
+                                            this.messages[assistantMessageIndex].sourceMap = JSON.parse(sourcesBuffer);
+                                            // Force re-render now that we have source mapping
+                                            this.$nextTick(() => {
+                                                this.scrollToBottom();
+                                            });
+                                        } catch (e) {
+                                            console.error('Failed to parse source mapping:', e);
+                                        }
+                                        sourcesBuffer = '';
+                                        // Continue processing in case there are more tags
+                                    }
+                                } else if (insideThinkTag) {
                                     const thinkEnd = buffer.indexOf('</think>');
                                     if (thinkEnd === -1) {
                                         // No end tag yet, buffer the thinking content
@@ -1174,6 +1229,9 @@
                 renderMessage(content, messageIndex) {
                     if (!content) return '';
 
+                    const message = this.messages[messageIndex];
+                    const sourceMap = message?.sourceMap || {};
+
                     let processedContent = content;
                     let html = '';
                     let lastIndex = 0;
@@ -1187,7 +1245,7 @@
                         // Add text before the thinking block
                         if (match.index > lastIndex) {
                             const textBefore = processedContent.substring(lastIndex, match.index);
-                            html += this.parseMarkdown(textBefore);
+                            html += this.parseMarkdownWithCitations(textBefore, sourceMap);
                         }
 
                         if (match[1]) {
@@ -1233,10 +1291,45 @@
                     // Add remaining text after last thinking block
                     if (lastIndex < processedContent.length) {
                         const remainingText = processedContent.substring(lastIndex);
-                        html += this.parseMarkdown(remainingText);
+                        html += this.parseMarkdownWithCitations(remainingText, sourceMap);
                     }
 
-                    return html || this.parseMarkdown(processedContent);
+                    // If no thinking blocks were found, parse the entire content
+                    if (html === '') {
+                        html = this.parseMarkdownWithCitations(processedContent, sourceMap);
+                    }
+
+                    return html;
+                },
+
+                parseMarkdownWithCitations(text, sourceMap) {
+                    // First, convert citation markers [1], [2], etc. to HTML comment placeholders
+                    const citationPlaceholders = [];
+                    let textWithPlaceholders = text.replace(/\[(\d+)\]/g, (match, num) => {
+                        const placeholder = `<!--CITATION${citationPlaceholders.length}-->`;
+                        const source = sourceMap[num];
+                        if (source) {
+                            const title = source.page
+                                ? `${source.name} (Page ${source.page})`
+                                : source.name;
+                            const citation = `<sup><a href="${source.url}" target="_blank" title="${this.escapeHtml(title)}" style="color: var(--cyan); text-decoration: none;">[${num}]</a></sup>`;
+                            citationPlaceholders.push(citation);
+                        } else {
+                            // No source mapping, keep original
+                            citationPlaceholders.push(match);
+                        }
+                        return placeholder;
+                    });
+
+                    // Parse markdown
+                    let html = this.parseMarkdown(textWithPlaceholders);
+
+                    // Restore citations
+                    citationPlaceholders.forEach((citation, index) => {
+                        html = html.replace(`<!--CITATION${index}-->`, citation);
+                    });
+
+                    return html;
                 },
 
                 toggleThinking(thinkingId) {
