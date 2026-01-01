@@ -1,5 +1,5 @@
 """Flask application factory and routes."""
-from flask import Flask, request, jsonify, Response, stream_with_context, render_template
+from flask import Flask, request, jsonify, Response, stream_with_context, render_template, send_from_directory
 from flask_cors import CORS
 import sys
 from pathlib import Path
@@ -15,6 +15,7 @@ from src.config import (
     PROJECT_ROOT,
     APP_TITLE,
     APP_SUBTITLE,
+    DATA_DIR,
 )
 from src.models import get_db
 
@@ -44,6 +45,11 @@ def create_app():
     def index():
         """Serve the main page."""
         return render_template("index.html", app_title=APP_TITLE, app_subtitle=APP_SUBTITLE)
+
+    @app.route("/static/pdfs/<path:filename>")
+    def serve_pdf(filename):
+        """Serve PDF files from the data directory."""
+        return send_from_directory(DATA_DIR, filename)
 
     @app.route("/api/health", methods=["GET"])
     def health():
@@ -106,6 +112,48 @@ def create_app():
                 response = agent_instance.chat(message)
                 for token in response.response_gen:
                     yield token
+
+                # After streaming completes, append source information
+                if hasattr(response, 'source_nodes') and response.source_nodes:
+                    sources = []
+                    seen_sources = set()
+
+                    for node in response.source_nodes:
+                        # Extract file name and page number from metadata
+                        file_name = node.metadata.get('file_name', 'Unknown')
+                        page_label = node.metadata.get('page_label', '')
+                        file_path = node.metadata.get('file_path', '')
+
+                        # Create unique identifier for deduplication
+                        source_id = f"{file_name}_{page_label}"
+                        if source_id not in seen_sources:
+                            seen_sources.add(source_id)
+
+                            # Format source entry with link
+                            if file_path:
+                                # Get relative path from DATA_DIR
+                                try:
+                                    rel_path = Path(file_path).relative_to(DATA_DIR)
+                                    # Use as_posix() to ensure forward slashes for URLs
+                                    pdf_url = f"/static/pdfs/{rel_path.as_posix()}"
+                                except ValueError:
+                                    # If file is not in DATA_DIR, just use filename
+                                    pdf_url = f"/static/pdfs/{file_name}"
+
+                                if page_label:
+                                    sources.append(f"[{file_name} (Page {page_label})]({pdf_url})")
+                                else:
+                                    sources.append(f"[{file_name}]({pdf_url})")
+                            else:
+                                if page_label:
+                                    sources.append(f"{file_name} (Page {page_label})")
+                                else:
+                                    sources.append(file_name)
+
+                    if sources:
+                        yield "\n\n---\n\n**Sources:**\n\n"
+                        for i, source in enumerate(sources, 1):
+                            yield f"{i}. {source}\n"
             except Exception as e:
                 yield f"\n\nError: {str(e)}"
 
