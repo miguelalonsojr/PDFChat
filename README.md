@@ -127,23 +127,37 @@ http://127.0.0.1:5000
 ```
 PDFChat/
 ├── data/
-│   └── pdfs/              # Place your PDF files here
+│   └── pdfs/              # Place your PDF files here (supports subdirectories)
 ├── storage/
 │   ├── chroma_db/         # Persistent vector store (auto-generated)
+│   ├── conversations/     # SQLite database for conversation history
+│   │   └── conversations.db
 │   └── index_cache/       # LlamaIndex cache (auto-generated)
 ├── src/
+│   ├── __init__.py
 │   ├── config.py          # Configuration settings
+│   ├── models.py          # Database models for conversations
 │   ├── indexing/
+│   │   ├── __init__.py
 │   │   └── build_index.py # PDF indexing script
 │   ├── agents/
+│   │   ├── __init__.py
 │   │   └── qa_agent.py    # Q&A agent with LlamaIndex
 │   └── api/
-│       └── app.py         # Flask application
+│       ├── __init__.py
+│       └── app.py         # Flask application with conversation API
 ├── templates/
-│   └── index.html         # Web interface template
-├── static/                # Static assets
+│   ├── index.html         # Main chat interface
+│   └── history.html       # Conversation history page
+├── static/                # Static assets (CSS, JS, images)
+├── .env.example           # Example environment variables
+├── .gitignore             # Git ignore rules
+├── LICENSE                # MIT License
 ├── pyproject.toml         # UV project configuration
-└── README.md
+├── uv.lock                # UV lockfile
+├── QUICKSTART.md          # Quick start guide
+├── README.md              # This file
+└── run.py                 # Simple launcher script
 ```
 
 ## Configuration
