@@ -2,6 +2,8 @@
 
 A fully local PDF question-answering chatbot built with Flask, LlamaIndex, and Ollama. Ask questions about your PDF documents using a web interface with streaming responses.
 
+![PDFChat](images/pdf_chat.png)
+
 ## Features
 
 - **Fully Local**: No external API calls - everything runs on your machine
