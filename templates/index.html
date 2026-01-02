@@ -189,6 +189,20 @@
             flex: 1;
         }
 
+        .app-container.centered {
+            justify-content: center;
+            gap: 0;
+        }
+
+        .app-container.centered .header-section {
+            flex-shrink: 1;
+        }
+
+        .app-container.centered .input-section {
+            flex-shrink: 1;
+            border-top: none;
+        }
+
         .header-section {
             flex-shrink: 0;
             padding: 1rem;
@@ -202,11 +216,15 @@
             background-color: var(--base03);
         }
 
+        .chat-section.hidden {
+            display: none;
+        }
+
         .input-section {
             flex-shrink: 0;
             padding: 1rem;
-            background-color: var(--base02);
-            border-top: 1px solid var(--base01);
+            /*background-color: var(--base02);*/
+            /*border-top: 1px solid var(--base01);*/
         }
 
         .message-content {
@@ -652,7 +670,7 @@
             </div>
         </div>
 
-        <div class="app-container">
+        <div class="app-container" :class="{ 'centered': !hasStartedChat }">
         <!-- Header Section (Sticky Top) -->
         <div class="header-section">
             <div class="card rounded-lg shadow-md p-6">
@@ -662,16 +680,6 @@
                         <p class="header-subtitle">{{ app_subtitle }}</p>
                     </div>
                     <div class="flex items-center gap-4">
-                        <button
-                            @click="startNewConversation()"
-                            class="sidebar-icon"
-                            title="New Conversation"
-                            style="background-color: var(--cyan); color: var(--base03);"
-                        >
-                            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-                            </svg>
-                        </button>
                         <div class="settings-toggle">
                             <label class="flex items-center gap-2 cursor-pointer">
                                 <span>Show thinking</span>
@@ -688,7 +696,7 @@
         </div>
 
         <!-- Chat Section (Scrollable Middle) -->
-        <div class="chat-section space-y-4" x-ref="chatContainer">
+        <div class="chat-section space-y-4" :class="{ 'hidden': !hasStartedChat }" x-ref="chatContainer">
                 <template x-if="messages.length === 0">
                     <div class="text-center py-12">
                         <svg class="mx-auto h-12 w-12 empty-state-icon mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -767,6 +775,7 @@
                 error: '',
                 showThinking: false,
                 thinkingExpanded: {},
+                hasStartedChat: false,
 
                 // Conversation management
                 currentConversationId: null,
@@ -854,6 +863,11 @@
                             const conversation = await response.json();
                             this.currentConversationId = conversationId;
                             this.messages = conversation.messages || [];
+
+                            // Set hasStartedChat if there are messages
+                            if (this.messages.length > 0) {
+                                this.hasStartedChat = true;
+                            }
 
                             // Update URL without page reload
                             const url = new URL(window.location);
@@ -1001,6 +1015,9 @@
                     const userMessage = this.currentMessage.trim();
                     this.currentMessage = '';
                     this.error = '';
+
+                    // Set hasStartedChat to true when sending the first message
+                    this.hasStartedChat = true;
 
                     // Add user message
                     this.messages.push({
@@ -1187,6 +1204,7 @@
                         if (response.ok) {
                             this.messages = [];
                             this.error = '';
+                            this.hasStartedChat = false;
                         }
                     } catch (err) {
                         this.error = `Error resetting chat: ${err.message}`;
