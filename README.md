@@ -130,8 +130,7 @@ PDFChat/
 │   └── pdfs/              # Place your PDF files here (supports subdirectories)
 ├── storage/
 │   ├── chroma_db/         # Persistent vector store (auto-generated)
-│   ├── conversations/     # SQLite database for conversation history
-│   │   └── conversations.db
+│   ├── conversations/     # SQLite database for conversation history (auto-generated)
 │   └── index_cache/       # LlamaIndex cache (auto-generated)
 ├── src/
 │   ├── __init__.py
