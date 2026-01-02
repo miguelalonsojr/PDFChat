@@ -8,6 +8,7 @@ DATA_DIR = PROJECT_ROOT / "data" / "pdfs"
 STORAGE_DIR = PROJECT_ROOT / "storage"
 CHROMA_DIR = STORAGE_DIR / "chroma_db"
 CACHE_DIR = STORAGE_DIR / "index_cache"
+DATABASE_DIR = STORAGE_DIR / "conversations"
 
 # Ensure directories exist
 DATA_DIR.mkdir(parents=True, exist_ok=True)

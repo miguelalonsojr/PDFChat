@@ -48,6 +48,8 @@ storage/chroma_db/*
 !storage/chroma_db/.gitkeep
 storage/index_cache/*
 !storage/index_cache/.gitkeep
+storage/conversations/*
+!storage/conversations/.gitkeep
 
 # OS
 .DS_Store

@@ -4,10 +4,11 @@ from typing import List, Optional
 import json
 import sqlite3
 from pathlib import Path
-from src.config import STORAGE_DIR
+
+from src.config import DATABASE_DIR
 
 
-DATABASE_PATH = STORAGE_DIR / "conversations.db"
+DATABASE_PATH = DATABASE_DIR / "conversations.db"
 
 
 class ConversationDB:
