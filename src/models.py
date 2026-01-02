@@ -22,6 +22,8 @@ class ConversationDB:
     def _init_db(self):
         """Initialize database tables."""
         with sqlite3.connect(self.db_path) as conn:
+            # Enable foreign key constraints
+            conn.execute("PRAGMA foreign_keys = ON")
             cursor = conn.cursor()
 
             # Conversations table
@@ -184,6 +186,7 @@ class ConversationDB:
     def delete_conversation(self, conversation_id: int):
         """Delete a conversation and all its messages."""
         with sqlite3.connect(self.db_path) as conn:
+            conn.execute("PRAGMA foreign_keys = ON")
             cursor = conn.cursor()
             cursor.execute("DELETE FROM conversations WHERE id = ?", (conversation_id,))
             conn.commit()

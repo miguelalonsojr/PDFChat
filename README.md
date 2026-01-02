@@ -288,6 +288,26 @@ The indexing script will process all PDFs, including new ones.
 uv sync --all-extras
 ```
 
+### Run Tests
+
+The project includes a comprehensive test suite with 90%+ code coverage.
+
+```bash
+# Run all tests
+uv run pytest
+
+# Run with coverage report
+uv run pytest --cov=src --cov-report=term-missing
+
+# Run tests in parallel
+uv run pytest -n auto
+
+# Run only unit tests
+uv run pytest -m unit
+```
+
+See [tests/README.md](tests/README.md) for detailed testing documentation.
+
 ### Format Code
 
 ```bash
