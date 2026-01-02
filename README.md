@@ -17,6 +17,7 @@ A fully local PDF question-answering chatbot built with Flask, LlamaIndex, and O
 - **LLM**: Ollama with Nemotron (local)
 - **Embeddings**: HuggingFace sentence-transformers (local)
 - **Vector Store**: ChromaDB (persistent, local)
+- **Database**: SQLite (conversation history)
 - **RAG Framework**: LlamaIndex
 - **Frontend**: HTMX + Alpine.js + Tailwind CSS
 - **Package Manager**: UV
